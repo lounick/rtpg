@@ -17,7 +17,7 @@ else()
 endif()
 
 # Options. Turn on with 'cmake -DBUILD_TESTING=ON'.
-# catkin build manif --cmake-args -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
+# catkin build rtpg --cmake-args -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
 option(BUILD_TESTING "Build all tests." OFF)
 option(ENABLE_CPPCHECK "Enable cppcheck." OFF)
 option(BUILD_EXAMPLES "Build all examples." OFF)
@@ -25,6 +25,40 @@ option(BUILD_EXAMPLES "Build all examples." OFF)
 ###########
 ## Build ##
 ###########
+
+add_library(${PROJECT_NAME}
+    src/property_graph.cpp
+    src/graph_element.cpp
+    src/node.cpp
+    src/edge.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/stduuid/include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(${PROJECT_NAME} -ftemplate-depth=512)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # GCC is not strict enough by default, so enable most of the warnings.
+  target_compile_options(${PROJECT_NAME} PUBLIC
+    -Werror=all
+    -Werror=extra
+    -Wno-unknown-pragmas
+    -Wno-sign-compare
+    -Wno-unused-parameter
+    -Wno-missing-field-initializers
+  )
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(${PROJECT_NAME} /bigobj)
+endif()
 
 ##############
 ## Examples ##
@@ -45,7 +79,7 @@ option(BUILD_EXAMPLES "Build all examples." OFF)
 # ------------------------------------------------------------------------------
 
 if(ENABLE_COVERAGE)
-  add_definitions(-DMANIF_COVERAGE_ENABLED)
+  add_definitions(-DRTPG_COVERAGE_ENABLED)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g ")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs")

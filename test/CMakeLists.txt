@@ -39,15 +39,22 @@ if(NOT GTEST_FOUND)
 endif()
 
 # small helper function
-function(rt-pg_add_gtest target)
+function(rtpg_add_gtest target)
   add_executable(${target} ${ARGN})
   add_dependencies(${target} gtest)
   target_link_libraries(${target} ${PROJECT_NAME} gtest)
+  target_compile_features(${target} PRIVATE cxx_std_17)
 
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
 include_directories(${GTEST_INCLUDE_DIRS})
+
+
+#rtpg_add_gtest(gtest_node gtest_node.cpp)
+#rtpg_add_gtest(gtest_edge gtest_edge.cpp)
+rtpg_add_gtest(gtest_property_graph src/gtest_property_graph.cpp)
+
 
 # Set required C++11 flag
 if(CMAKE_VERSION VERSION_LESS "3.1")
