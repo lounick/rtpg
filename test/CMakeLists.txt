@@ -44,6 +44,18 @@ function(rt-pg_add_gtest target)
   add_dependencies(${target} gtest)
   target_link_libraries(${target} ${PROJECT_NAME} gtest)
 
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    # GCC is not strict enough by default, so enable most of the warnings.
+    target_compile_options(${target} PRIVATE
+      -Werror=all
+      -Werror=extra
+      -Wno-unknown-pragmas
+      -Wno-sign-compare
+      -Wno-unused-parameter
+      -Wno-missing-field-initializers
+      )
+  endif()
+
   add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
@@ -51,10 +63,9 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 # Set required C++11 flag
 if(CMAKE_VERSION VERSION_LESS "3.1")
-  set_target_properties(${CXX_11_TEST_TARGETS} PROPERTIES COMPILE_FLAGS "-std=c++11")
+  set_target_properties(${CXX_17_TEST_TARGETS} PROPERTIES COMPILE_FLAGS "-std=c++17")
 else()
-  set_property(TARGET ${CXX_11_TEST_TARGETS} PROPERTY CXX_STANDARD 11)
-  set_property(TARGET ${CXX_11_TEST_TARGETS} PROPERTY CXX_STANDARD_REQUIRED ON)
-  set_property(TARGET ${CXX_11_TEST_TARGETS} PROPERTY CXX_EXTENSIONS OFF)
+  set_property(TARGET ${CXX_17_TEST_TARGETS} PROPERTY CXX_STANDARD 17)
+  set_property(TARGET ${CXX_17_TEST_TARGETS} PROPERTY CXX_STANDARD_REQUIRED ON)
+  set_property(TARGET ${CXX_17_TEST_TARGETS} PROPERTY CXX_EXTENSIONS OFF)
 endif()
-

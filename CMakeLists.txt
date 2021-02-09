@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.10.2)
-project(rtpg CXX)
+cmake_minimum_required(VERSION 3.10.2...3.19)
+project(rtpg VERSION 0.0.1 LANGUAGES CXX)
 
 # Get the project name in capital letters
 # for the lib namespace
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_CAPS)
 
-# Check that the compoiler has c++11 support
+# Check that the compoiler has c++17 support
 # Crash otherwise.
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
@@ -25,6 +25,74 @@ option(BUILD_EXAMPLES "Build all examples." OFF)
 ###########
 ## Build ##
 ###########
+
+# add_subdirectory("external/stduuid")
+# add_subdirectory("external/handle_allocator")
+
+include(ExternalProject)
+ExternalProject_Add(
+  handle_allocator
+  GIT_REPOSITORY    https://github.com/lounick/handle_allocator.git
+  # GIT_TAG origin/master
+  CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+  TIMEOUT 5
+  PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
+  INSTALL_COMMAND "" 
+)
+ExternalProject_Get_Property(handle_allocator source_dir)
+set(HAIncludeDir ${source_dir}/include)
+
+ExternalProject_Add(
+  stduuid
+  GIT_REPOSITORY    https://github.com/mariusbancila/stduuid.git
+  # GIT_TAG origin/master
+  CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+  TIMEOUT 5
+  PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
+  INSTALL_COMMAND "" 
+)
+ExternalProject_Get_Property(stduuid source_dir)
+set(StduuidIncludeDir ${source_dir}/include)
+set(StduuidIncludeGSL ${source_dir}/gsl)
+
+add_library(${PROJECT_NAME}
+    src/property_graph.cpp
+    src/graph_element.cpp
+    src/node.cpp
+    src/edge.cpp
+)
+
+add_dependencies(${PROJECT_NAME} handle_allocator)
+add_dependencies(${PROJECT_NAME} stduuid)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${HAIncludeDir}>
+        $<BUILD_INTERFACE:${StduuidIncludeDir}>
+        $<BUILD_INTERFACE:${StduuidIncludeGSL}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  target_compile_options(${PROJECT_NAME} -ftemplate-depth=512)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # GCC is not strict enough by default, so enable most of the warnings.
+  target_compile_options(${PROJECT_NAME} PUBLIC
+    -Werror=all
+    -Werror=extra
+    -Wno-unknown-pragmas
+    -Wno-sign-compare
+    -Wno-unused-parameter
+    -Wno-missing-field-initializers
+  )
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(${PROJECT_NAME} /bigobj)
+endif()
 
 ##############
 ## Examples ##
