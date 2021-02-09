@@ -1,6 +1,0 @@
-[submodule "external/handle_allocator"]
-	path = external/handle_allocator
-	url = git@github.com:lounick/handle_allocator.git
-[submodule "external/stduuid"]
-	path = external/stduuid
-	url = git@github.com:mariusbancila/stduuid.git
