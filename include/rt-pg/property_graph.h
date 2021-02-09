@@ -60,6 +60,7 @@ class PropertyGraph {
   handle_allocator::HandleAllocator<Edge> edges_;
   std::map<UUID, std::vector<Handle>> mids_;
   std::unique_ptr<uuids::uuid_random_generator> uuidv1_generator_;
+  std::unique_ptr<std::mt19937> gen_;
 };
 
 }  // namespace rtpg
