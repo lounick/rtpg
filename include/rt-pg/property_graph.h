@@ -36,7 +36,7 @@ class PropertyGraph {
    * @return true If the edge was added correctly.
    * @return false If the edge was not added.
    */
-  bool AddEdge(UUID start, UUID end, UUID mid);
+  std::optional<Handle> AddEdge(UUID start, UUID end, UUID mid);
 
   /**
    * @brief Adds an edge between two nodes in the graph using the handles of
@@ -48,7 +48,7 @@ class PropertyGraph {
    * @return true If the edge was added correctly.
    * @return false If the edge was not added.
    */
-  bool AddEdge(Handle start, Handle end, UUID mid);
+  std::optional<Handle> AddEdge(Handle start, Handle end, UUID mid);
 
   void RemoveNode(Handle node_handle);
   void RemoveNode(UUID id);
@@ -56,9 +56,12 @@ class PropertyGraph {
   void RemoveEdge(UUID id);
 
  private:
+  void RollbackAddNode(const Handle& handle, const std::vector<UUID>& mids);
+
   handle_allocator::HandleAllocator<Node> nodes_;
   handle_allocator::HandleAllocator<Edge> edges_;
   std::map<UUID, std::vector<Handle>> mids_;
+  std::map<UUID, Handle> uuid_to_handle_;
   std::unique_ptr<uuids::uuid_random_generator> uuidv1_generator_;
   std::unique_ptr<std::mt19937> gen_;
 };
