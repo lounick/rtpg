@@ -56,7 +56,9 @@ class PropertyGraph {
   void RemoveEdge(UUID id);
 
  private:
-  void RollbackAddNode(const Handle& handle, const std::vector<UUID>& mids);
+  void RollbackAddNode(const Handle& handle,
+                       const std::map<UUID, Handle>::iterator& it,
+                       const std::vector<UUID>& mids);
 
   handle_allocator::HandleAllocator<Node> nodes_;
   handle_allocator::HandleAllocator<Edge> edges_;

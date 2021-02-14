@@ -20,9 +20,30 @@ std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
   Node n(id, mids, properites);
   std::optional<Handle> ret = nodes_.Insert(std::move(n));
   std::vector<UUID> successful_mids;
-  successful_mids.reserve(mids.size());
   if (ret.has_value()) {
-    uuid_to_handle_.insert({id, ret.value()});
+    // Initialise variables
+    successful_mids.clear();
+    std::map<UUID, Handle>::iterator uuid_to_handle_it = uuid_to_handle_.end();
+
+    // Try to allocate memory for mid bookkeeping
+    try {
+      successful_mids.reserve(mids.size());
+    } catch (const std::exception& e) {
+      std::cerr << e.what() << '\n';
+      RollbackAddNode(ret.value(), uuid_to_handle_it, successful_mids);
+      return {};
+    }
+
+    // Try to map the UUID to handle
+    try {
+      auto [it, success] = uuid_to_handle_.insert({id, ret.value()});
+      uuid_to_handle_it = it;
+    } catch (const std::exception& e) {
+      std::cerr << e.what() << '\n';
+      RollbackAddNode(ret.value(), uuid_to_handle_it, successful_mids);
+      return {};
+    }
+
     for (const UUID& mid : mids) {
       try {
         // Try to insert normaly
@@ -36,13 +57,13 @@ std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
         } catch (const std::exception& ex) {
           // If any of these fails rollback and fail adding
           std::cerr << e.what() << '\n';
-          RollbackAddNode(ret.value(), successful_mids);
+          RollbackAddNode(ret.value(), uuid_to_handle_it, successful_mids);
           return {};
         }
       } catch (const std::exception& e) {
         // If something else happens just rollback any changes and fail adding
         std::cerr << e.what() << '\n';
-        RollbackAddNode(ret.value(), successful_mids);
+        RollbackAddNode(ret.value(), uuid_to_handle_it, successful_mids);
         return {};
       }
       successful_mids.push_back(mid);
@@ -64,9 +85,13 @@ void PropertyGraph::RemoveEdge(Handle edge_handle) {}
 void PropertyGraph::RemoveEdge(UUID id) {}
 
 void PropertyGraph::RollbackAddNode(const Handle& handle,
+                                    const std::map<UUID, Handle>::iterator& it,
                                     const std::vector<UUID>& mids) {
   for (const UUID& mid : mids) {
     mids_.at(mid).pop_back();
+  }
+  if (it != uuid_to_handle_.end()) {
+    uuid_to_handle_.erase(it);
   }
   nodes_.Delete(handle);
 }
