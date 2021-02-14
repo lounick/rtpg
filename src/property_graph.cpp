@@ -152,10 +152,76 @@ std::optional<Handle> PropertyGraph::AddEdge(Handle start, Handle end,
   }
   return ret;
 }
-void PropertyGraph::RemoveNode(Handle node_handle) {}
-void PropertyGraph::RemoveNode(UUID id) {}
-void PropertyGraph::RemoveEdge(Handle edge_handle) {}
-void PropertyGraph::RemoveEdge(UUID id) {}
+
+bool PropertyGraph::RemoveNode(UUID id) {
+  Handle node_handle;
+  try {
+    node_handle = uuid_to_handle_.at(id);
+  } catch (const std::out_of_range& e) {
+    std::cerr << e.what() << '\n';
+    return false;
+  }
+  return RemoveNode(node_handle);
+}
+
+bool PropertyGraph::RemoveNode(Handle node_handle) {
+  // TODO
+  // For each outgoing edge
+  //// Traverse it and find the incomming node
+  //// Remove edge from that node
+  //// Remove this edge
+  // Remove the node
+  std::shared_ptr<Node> node_ptr;
+  return false;
+}
+
+bool PropertyGraph::RemoveEdge(UUID id) {
+  Handle edge_handle;
+  try {
+    edge_handle = uuid_to_handle_.at(id);
+  } catch (const std::out_of_range& e) {
+    std::cerr << e.what() << '\n';
+    return false;
+  }
+  return RemoveEdge(edge_handle);
+}
+
+bool PropertyGraph::RemoveEdge(Handle edge_handle) {
+  std::shared_ptr<const Edge> edge_ptr;
+  try {
+    edge_ptr = edges_.GetConst(edge_handle).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+    return false;
+  }
+
+  const Handle start = edge_ptr->tail();
+  const Handle end = edge_ptr->head();
+
+  std::shared_ptr<Node> start_node_ptr;
+  std::shared_ptr<Node> end_node_ptr;
+  try {
+    start_node_ptr = nodes_.Get(start).value().lock();
+    std::vector<Handle>& out_edges = start_node_ptr->out_edges();
+    out_edges.erase(
+        std::remove(out_edges.begin(), out_edges.end(), edge_handle),
+        out_edges.end());
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+
+  try {
+    end_node_ptr = nodes_.Get(end).value().lock();
+    std::vector<Handle>& in_edges = end_node_ptr->in_edges();
+    in_edges.erase(std::remove(in_edges.begin(), in_edges.end(), edge_handle),
+                   in_edges.end());
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+
+  uuid_to_handle_.erase(edge_ptr->id());
+  return edges_.Delete(edge_handle);
+}
 
 void PropertyGraph::RollbackAddNode(const Handle& handle,
                                     const std::map<UUID, Handle>::iterator& it,

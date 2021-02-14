@@ -50,10 +50,10 @@ class PropertyGraph {
    */
   std::optional<Handle> AddEdge(Handle start, Handle end, UUID mid);
 
-  void RemoveNode(Handle node_handle);
-  void RemoveNode(UUID id);
-  void RemoveEdge(Handle edge_handle);
-  void RemoveEdge(UUID id);
+  bool RemoveNode(UUID id);
+  bool RemoveNode(Handle node_handle);
+  bool RemoveEdge(UUID id);
+  bool RemoveEdge(Handle edge_handle);
 
  private:
   void RollbackAddNode(const Handle& handle,
