@@ -73,11 +73,84 @@ std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
 }
 
 std::optional<Handle> PropertyGraph::AddEdge(UUID start, UUID end, UUID mid) {
-  return {};
+  Handle start_handle, end_handle;
+  // Try to get Handles from UUIDs. Fail if one of the two is not there.
+  try {
+    start_handle = uuid_to_handle_.at(start);
+  } catch (const std::out_of_range& e) {
+    std::cerr << e.what() << '\n';
+    return {};
+  }
+
+  try {
+    end_handle = uuid_to_handle_.at(end);
+  } catch (const std::out_of_range& e) {
+    std::cerr << e.what() << '\n';
+    return {};
+  }
+
+  return AddEdge(start_handle, end_handle, mid);
 }
 std::optional<Handle> PropertyGraph::AddEdge(Handle start, Handle end,
                                              UUID mid) {
-  return {};
+  std::shared_ptr<Node> start_node_ptr;
+  std::shared_ptr<Node> end_node_ptr;
+  try {
+    start_node_ptr = nodes_.Get(start).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+    return {};
+  }
+
+  try {
+    end_node_ptr = nodes_.Get(end).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+    return {};
+  }
+
+  // TODO: This may not be needed.
+  if (start_node_ptr == nullptr || end_node_ptr == nullptr) {
+    return {};
+  }
+
+  UUID id = (*uuidv1_generator_)();
+  Edge e(id, mid);
+  e.head(end);
+  e.tail(start);
+  std::optional<Handle> ret = edges_.Insert(std::move(e));
+  try {
+    Handle edge_handle = ret.value();
+    try {
+      start_node_ptr->out_edges().push_back(edge_handle);
+    } catch (const std::exception& e) {
+      std::cout << e.what() << '\n';
+      edges_.Delete(edge_handle);
+      return {};
+    }
+    try {
+      end_node_ptr->in_edges().push_back(edge_handle);
+    } catch (const std::exception& e) {
+      std::cout << e.what() << '\n';
+      start_node_ptr->out_edges().pop_back();
+      edges_.Delete(edge_handle);
+      return {};
+    }
+
+    try {
+      uuid_to_handle_.insert({id, edge_handle});
+    } catch (const std::exception& e) {
+      std::cout << e.what() << '\n';
+      start_node_ptr->out_edges().pop_back();
+      end_node_ptr->in_edges().pop_back();
+      edges_.Delete(edge_handle);
+      return {};
+    }
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+    return {};
+  }
+  return ret;
 }
 void PropertyGraph::RemoveNode(Handle node_handle) {}
 void PropertyGraph::RemoveNode(UUID id) {}
