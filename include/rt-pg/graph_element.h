@@ -11,6 +11,7 @@ class GraphElement {
   virtual ~GraphElement();
   const UUID& id() const;
   const Properties& properties() const;
+  Properties& properties();
 
  protected:
   UUID id_;

@@ -17,7 +17,11 @@ class Node : public GraphElement {
   ~Node();
   const std::vector<UUID>& mids() const;
   const std::vector<Handle>& out_edges() const;
+  std::vector<Handle>& out_edges();
   const std::vector<Handle>& in_edges() const;
+  std::vector<Handle>& in_edges();
+  const Properties& properties() const;
+  Properties& properties();
 
  protected:
   std::vector<UUID> mids_;

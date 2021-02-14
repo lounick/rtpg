@@ -12,7 +12,9 @@ class Edge : public GraphElement {
   ~Edge();
   const UUID& mid() const;
   const Handle& head() const;
+  void head(Handle head);
   const Handle& tail() const;
+  void tail(Handle tail);
 
  protected:
   UUID mid_;
