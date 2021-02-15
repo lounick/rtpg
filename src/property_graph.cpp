@@ -36,8 +36,8 @@ std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
 
     // Try to map the UUID to handle
     try {
-      auto [it, success] = uuid_to_handle_.insert({id, ret.value()});
-      uuid_to_handle_it = it;
+      auto ins_ret = uuid_to_handle_.insert({id, ret.value()});
+      uuid_to_handle_it = ins_ret.first;
     } catch (const std::exception& e) {
       std::cerr << e.what() << '\n';
       RollbackAddNode(ret.value(), uuid_to_handle_it, successful_mids);
@@ -52,8 +52,9 @@ std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
         // If there is no mid key present
         try {
           // Try to create one and insert
-          auto [it, success] = mids_.insert({mid, std::vector<Handle>()});
-          it->second.push_back(ret.value());
+          auto ins_ret = mids_.insert({mid, std::vector<Handle>()});
+          // Iterator is first, second is the value of the K,V pair
+          ins_ret.first->second.push_back(ret.value());
         } catch (const std::exception& ex) {
           // If any of these fails rollback and fail adding
           std::cerr << e.what() << '\n';
@@ -165,14 +166,26 @@ bool PropertyGraph::RemoveNode(UUID id) {
 }
 
 bool PropertyGraph::RemoveNode(Handle node_handle) {
-  // TODO
-  // For each outgoing edge
-  //// Traverse it and find the incomming node
-  //// Remove edge from that node
-  //// Remove this edge
-  // Remove the node
-  std::shared_ptr<Node> node_ptr;
-  return false;
+  std::shared_ptr<Node> node_ptr = GetNodePtrFromHandle(node_handle);
+  if (node_ptr == nullptr) {
+    return false;
+  }
+
+  std::vector<Handle>& out_edges = node_ptr->out_edges();
+  for (Handle& edge_handle : out_edges) {
+    std::shared_ptr<Edge> edge_ptr = GetEdgePtrFromHandle(edge_handle);
+    // TODO: Check if these pointer checks make sense
+    if (edge_ptr != nullptr) {
+      const Handle end = edge_ptr->head();
+      std::shared_ptr<Node> end_node_ptr = GetNodePtrFromHandle(end);
+      if (end_node_ptr != nullptr) {
+        RemoveHandleFromEdgeList(edge_handle, end_node_ptr->in_edges());
+      }
+    }
+    edges_.Delete(edge_handle);
+  }
+
+  return nodes_.Delete(node_handle);
 }
 
 bool PropertyGraph::RemoveEdge(UUID id) {
@@ -187,36 +200,25 @@ bool PropertyGraph::RemoveEdge(UUID id) {
 }
 
 bool PropertyGraph::RemoveEdge(Handle edge_handle) {
-  std::shared_ptr<const Edge> edge_ptr;
-  try {
-    edge_ptr = edges_.GetConst(edge_handle).value().lock();
-  } catch (const std::bad_optional_access& e) {
-    std::cout << e.what() << '\n';
+  std::shared_ptr<const Edge> edge_ptr = GetConstEdgePtrFromHandle(edge_handle);
+
+  if (edge_ptr == nullptr) {
     return false;
   }
 
   const Handle start = edge_ptr->tail();
   const Handle end = edge_ptr->head();
 
-  std::shared_ptr<Node> start_node_ptr;
-  std::shared_ptr<Node> end_node_ptr;
-  try {
-    start_node_ptr = nodes_.Get(start).value().lock();
+  std::shared_ptr<Node> start_node_ptr = GetNodePtrFromHandle(start);
+  if (start_node_ptr != nullptr) {
     std::vector<Handle>& out_edges = start_node_ptr->out_edges();
-    out_edges.erase(
-        std::remove(out_edges.begin(), out_edges.end(), edge_handle),
-        out_edges.end());
-  } catch (const std::bad_optional_access& e) {
-    std::cout << e.what() << '\n';
+    RemoveHandleFromEdgeList(edge_handle, out_edges);
   }
 
-  try {
-    end_node_ptr = nodes_.Get(end).value().lock();
+  std::shared_ptr<Node> end_node_ptr = GetNodePtrFromHandle(end);
+  if (end_node_ptr != nullptr) {
     std::vector<Handle>& in_edges = end_node_ptr->in_edges();
-    in_edges.erase(std::remove(in_edges.begin(), in_edges.end(), edge_handle),
-                   in_edges.end());
-  } catch (const std::bad_optional_access& e) {
-    std::cout << e.what() << '\n';
+    RemoveHandleFromEdgeList(edge_handle, in_edges);
   }
 
   uuid_to_handle_.erase(edge_ptr->id());
@@ -235,4 +237,54 @@ void PropertyGraph::RollbackAddNode(const Handle& handle,
   nodes_.Delete(handle);
 }
 
+std::shared_ptr<Edge> PropertyGraph::GetEdgePtrFromHandle(
+    const Handle& edge_handle) {
+  std::shared_ptr<Edge> edge_ptr = nullptr;
+  try {
+    edge_ptr = edges_.Get(edge_handle).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+  return edge_ptr;
+}
+
+std::shared_ptr<const Edge> PropertyGraph::GetConstEdgePtrFromHandle(
+    const Handle& edge_handle) {
+  std::shared_ptr<const Edge> edge_ptr = nullptr;
+  try {
+    edge_ptr = edges_.GetConst(edge_handle).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+  return edge_ptr;
+}
+
+std::shared_ptr<Node> PropertyGraph::GetNodePtrFromHandle(
+    const Handle& node_handle) {
+  std::shared_ptr<Node> node_ptr = nullptr;
+  try {
+    node_ptr = nodes_.Get(node_handle).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+  return node_ptr;
+}
+
+std::shared_ptr<const Node> PropertyGraph::GetConstNodePtrFromHandle(
+    const Handle& node_handle) {
+  std::shared_ptr<const Node> node_ptr = nullptr;
+  try {
+    node_ptr = nodes_.GetConst(node_handle).value().lock();
+  } catch (const std::bad_optional_access& e) {
+    std::cout << e.what() << '\n';
+  }
+  return node_ptr;
+}
+
+void PropertyGraph::RemoveHandleFromEdgeList(Handle& h,
+                                             std::vector<Handle>& list) {
+  list.erase(std::remove(list.begin(), list.end(), h), list.end());
+}
+
 }  // namespace rtpg
+

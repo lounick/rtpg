@@ -60,6 +60,15 @@ class PropertyGraph {
                        const std::map<UUID, Handle>::iterator& it,
                        const std::vector<UUID>& mids);
 
+  std::shared_ptr<Edge> GetEdgePtrFromHandle(const Handle& edge_handle);
+  std::shared_ptr<const Edge> GetConstEdgePtrFromHandle(
+      const Handle& edge_handle);
+  std::shared_ptr<Node> GetNodePtrFromHandle(const Handle& node_handle);
+  std::shared_ptr<const Node> GetConstNodePtrFromHandle(
+      const Handle& node_handle);
+
+  void RemoveHandleFromEdgeList(Handle& h, std::vector<Handle>& list);
+
   handle_allocator::HandleAllocator<Node> nodes_;
   handle_allocator::HandleAllocator<Edge> edges_;
   std::map<UUID, std::vector<Handle>> mids_;
