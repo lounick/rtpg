@@ -39,7 +39,7 @@ if(NOT GTEST_FOUND)
 endif()
 
 # small helper function
-function(rt-pg_add_gtest target)
+function(rtpg_add_gtest target)
   add_executable(${target} ${ARGN})
   add_dependencies(${target} gtest)
   target_link_libraries(${target} ${PROJECT_NAME} gtest)
@@ -61,7 +61,11 @@ endfunction()
 
 include_directories(${GTEST_INCLUDE_DIRS})
 
-# Set required C++11 flag
+rtpg_add_gtest(gtest_pg gtest_pg.cpp)
+
+set(CXX_17_TEST_TARGETS gtest_pg)
+
+# Set required C++17 flag
 if(CMAKE_VERSION VERSION_LESS "3.1")
   set_target_properties(${CXX_17_TEST_TARGETS} PROPERTIES COMPILE_FLAGS "-std=c++17")
 else()
