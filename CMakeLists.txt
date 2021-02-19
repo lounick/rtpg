@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2...3.19)
+cmake_minimum_required(VERSION 3.10.2-3.19)
 project(rtpg VERSION 0.0.1 LANGUAGES CXX)
 
 # Get the project name in capital letters
@@ -26,9 +26,6 @@ option(BUILD_EXAMPLES "Build all examples." OFF)
 ## Build ##
 ###########
 
-# add_subdirectory("external/stduuid")
-# add_subdirectory("external/handle_allocator")
-
 include(ExternalProject)
 ExternalProject_Add(
   handle_allocator
@@ -53,6 +50,8 @@ ExternalProject_Add(
 )
 ExternalProject_Get_Property(stduuid source_dir)
 set(StduuidIncludeDir ${source_dir}/include)
+
+#TODO this is required for C++ < 20
 set(StduuidIncludeGSL ${source_dir}/gsl)
 
 add_library(${PROJECT_NAME}
@@ -67,8 +66,8 @@ add_dependencies(${PROJECT_NAME} stduuid)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${HAIncludeDir}>
         $<BUILD_INTERFACE:${StduuidIncludeDir}>
         $<BUILD_INTERFACE:${StduuidIncludeGSL}>
@@ -93,6 +92,68 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   target_compile_options(${PROJECT_NAME} /bigobj)
 endif()
+
+#############
+## Install ##
+#############
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+# TODO check the correctness of the config_install_dir
+set(config_install_dir "share/${PROJECT_NAME}/cmake")
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# Targets:
+install(
+  TARGETS  ${PROJECT_NAME}
+  EXPORT   ${PROJECT_NAME}Targets
+  INCLUDES DESTINATION include
+  LIBRARY DESTINATION lib
+)
+
+install(
+  EXPORT      ${PROJECT_NAME}Targets
+  NAMESPACE   ${PROJECT_NAME_CAPS}::
+  DESTINATION "${config_install_dir}"
+)
+
+export(
+  TARGETS ${PROJECT_NAME}
+  NAMESPACE ${PROJECT_NAME_CAPS}::
+  FILE ${PROJECT_NAME}Targets.cmake
+)
+
+export(PACKAGE ${PROJECT_NAME})
+
+## Configuration
+
+#
+configure_package_config_file(
+  "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+  "${generated_dir}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION "${config_install_dir}"
+)
+
+# Configure '<PROJECT-NAME>ConfigVersion.cmake'
+write_basic_package_version_file(
+  "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake"
+  VERSION 0.0.0
+  COMPATIBILITY AnyNewerVersion
+)
+
+# Config
+install(
+  FILES       "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake"
+              "${generated_dir}/${PROJECT_NAME}Config.cmake"
+  DESTINATION "${config_install_dir}"
+)
+
+# Headers:
+
+install(
+  DIRECTORY "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}"
+  DESTINATION include
+)
 
 ##############
 ## Examples ##
