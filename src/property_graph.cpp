@@ -9,14 +9,19 @@ PropertyGraph::PropertyGraph() {
   uuidv1_generator_.reset(new uuids::uuid_random_generator(gen_.get()));
 }
 
+std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
+                                             Properties properites) {
+  UUID id = (*uuidv1_generator_)();
+  return AddNode(id, mids, properites);
+}
+
 // TODO: This whole thing shoud be considered atomic operation for
 // multi-threading. So it should be appropriatelly mutexed eventually.
 // Or should have some memory manager that keeps track the available memory
 // and we should calculate how much would we need for the operation and fail
 // imediately if that would not be available. That would prevent any rollbacks.
-std::optional<Handle> PropertyGraph::AddNode(std::vector<UUID> mids,
+std::optional<Handle> PropertyGraph::AddNode(UUID id, std::vector<UUID> mids,
                                              Properties properites) {
-  UUID id = (*uuidv1_generator_)();
   Node n(id, mids, properites);
   std::optional<Handle> ret = nodes_.Insert(std::move(n));
   std::vector<UUID> successful_mids;
@@ -287,4 +292,3 @@ void PropertyGraph::RemoveHandleFromEdgeList(Handle& h,
 }
 
 }  // namespace rtpg
-

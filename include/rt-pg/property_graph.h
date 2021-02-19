@@ -26,6 +26,9 @@ class PropertyGraph {
    */
   std::optional<Handle> AddNode(std::vector<UUID> mids, Properties properites);
 
+  std::optional<Handle> AddNode(UUID id, std::vector<UUID> mids,
+                                Properties properites);
+
   /**
    * @brief Adds an edge between two nodes in the graph using the UUIDs of
    * the nodes.
@@ -54,6 +57,8 @@ class PropertyGraph {
   bool RemoveNode(Handle node_handle);
   bool RemoveEdge(UUID id);
   bool RemoveEdge(Handle edge_handle);
+
+  // TODO: Add querrying for specific nodes or edges
 
  private:
   void RollbackAddNode(const Handle& handle,
