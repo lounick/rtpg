@@ -3,6 +3,7 @@
 #include <bitset>
 #include <map>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "handle_allocator/handle.h"
