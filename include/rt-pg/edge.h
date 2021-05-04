@@ -21,4 +21,7 @@ class Edge : public GraphElement {
   Handle tail_;
 };
 
+using ConstEdgePtr = std::shared_ptr<const Edge>;
+using EdgePtr = std::shared_ptr<Edge>;
+
 }  // namespace rtpg
