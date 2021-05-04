@@ -8,13 +8,12 @@
 namespace rtpg {
 class Edge : public GraphElement {
  public:
-  Edge(UUID id, UUID mid);
+  Edge(UUID id, UUID mid, Handle head, Handle tail,
+       const Properties& properties);
   ~Edge();
   const UUID& mid() const;
   const Handle& head() const;
-  void head(Handle head);
   const Handle& tail() const;
-  void tail(Handle tail);
 
  protected:
   UUID mid_;
