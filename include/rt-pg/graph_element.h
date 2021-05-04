@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rt-pg/property.h"
 #include "rt-pg/types.h"
 
 namespace rtpg {

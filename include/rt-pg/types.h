@@ -1,14 +1,16 @@
 #pragma once
 
 #include <bitset>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "handle_allocator/handle.h"
-#include "rt-pg/property.h"
 #include "uuid.h"
 
 namespace rtpg {
 using UUID = uuids::uuid;
 using Handle = handle_allocator::Handle;
-using Properties = std::vector<Property>;
+using Property = std::variant<bool, int64_t, double, std::string>;
+using Properties = std::map<std::string, Property>;
 }  // namespace rtpg
