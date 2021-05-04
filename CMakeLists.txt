@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2-3.19)
+cmake_minimum_required(VERSION 3.12)
 project(rtpg VERSION 0.0.1 LANGUAGES CXX)
 
 # Get the project name in capital letters
@@ -54,7 +54,7 @@ set(StduuidIncludeDir ${source_dir}/include)
 #TODO this is required for C++ < 20
 set(StduuidIncludeGSL ${source_dir}/gsl)
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
     src/property_graph.cpp
     src/graph_element.cpp
     src/node.cpp
