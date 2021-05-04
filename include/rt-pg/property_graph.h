@@ -19,15 +19,42 @@ class PropertyGraph {
   PropertyGraph();
 
   /**
+   * @brief
+   *
+   * @param mids
+   * @return std::optional<Handle>
+   */
+  std::optional<Handle> AddNode(std::vector<UUID> mids);
+
+  /**
+   * @brief
+   *
+   * @param id
+   * @param mids
+   * @return std::optional<Handle>
+   */
+  std::optional<Handle> AddNode(UUID id, std::vector<UUID> mids);
+
+  /**
    * @brief Adds a node to the graph.
    *
    * @param mids The model IDs the vertex confroms to
+   * @param properties Map containing the properties of the node
    * @return Handle The handle for accessing the vertex.
    */
-  std::optional<Handle> AddNode(std::vector<UUID> mids, Properties properites);
+  std::optional<Handle> AddNode(std::vector<UUID> mids,
+                                const Properties& properites);
 
+  /**
+   * @brief
+   *
+   * @param id
+   * @param mids
+   * @param properites
+   * @return std::optional<Handle>
+   */
   std::optional<Handle> AddNode(UUID id, std::vector<UUID> mids,
-                                Properties properites);
+                                const Properties& properites);
 
   /**
    * @brief Adds an edge between two nodes in the graph using the UUIDs of
@@ -51,28 +78,43 @@ class PropertyGraph {
    * @return true If the edge was added correctly.
    * @return false If the edge was not added.
    */
-  std::optional<Handle> AddEdge(Handle start, Handle end, UUID mid);
+  std::optional<Handle> AddEdge(const Handle& start, const Handle& end,
+                                UUID mid);
+
+  std::optional<Handle> AddEdge(UUID start, UUID end, UUID mid,
+                                const Properties& properties);
+  std::optional<Handle> AddEdge(const Handle& start, const Handle& end,
+                                UUID mid, const Properties& properties);
 
   bool RemoveNode(UUID id);
-  bool RemoveNode(Handle node_handle);
+  bool RemoveNode(const Handle& node_handle);
   bool RemoveEdge(UUID id);
-  bool RemoveEdge(Handle edge_handle);
+  bool RemoveEdge(const Handle& edge_handle);
 
-  // TODO: Add querrying for specific nodes or edges
+  // TODO: Maybe return optionals?
+  ConstNodePtr GetConstNodePtr(UUID id);
+  NodePtr GetNodePtr(UUID id);
+
+  ConstNodePtr GetConstNodePtr(const Handle& handle);
+  NodePtr GetNodePtr(const Handle& handle);
+
+  ConstEdgePtr GetConstEdgePtr(UUID id);
+  EdgePtr GetEdgePtr(UUID id);
+
+  ConstEdgePtr GetConstEdgePtr(const Handle& handle);
+  EdgePtr GetEdgePtr(const Handle& handle);
 
  private:
   void RollbackAddNode(const Handle& handle,
                        const std::map<UUID, Handle>::iterator& it,
                        const std::vector<UUID>& mids);
 
-  std::shared_ptr<Edge> GetEdgePtrFromHandle(const Handle& edge_handle);
-  std::shared_ptr<const Edge> GetConstEdgePtrFromHandle(
-      const Handle& edge_handle);
-  std::shared_ptr<Node> GetNodePtrFromHandle(const Handle& node_handle);
-  std::shared_ptr<const Node> GetConstNodePtrFromHandle(
-      const Handle& node_handle);
+  EdgePtr GetEdgePtrFromHandle(const Handle& edge_handle);
+  ConstEdgePtr GetConstEdgePtrFromHandle(const Handle& edge_handle);
+  NodePtr GetNodePtrFromHandle(const Handle& node_handle);
+  ConstNodePtr GetConstNodePtrFromHandle(const Handle& node_handle);
 
-  void RemoveHandleFromEdgeList(Handle& h, std::vector<Handle>& list);
+  void RemoveHandleFromEdgeList(const Handle& h, std::vector<Handle>& list);
 
   handle_allocator::HandleAllocator<Node> nodes_;
   handle_allocator::HandleAllocator<Edge> edges_;
