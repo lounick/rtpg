@@ -73,3 +73,20 @@ else()
   set_property(TARGET ${CXX_17_TEST_TARGETS} PROPERTY CXX_STANDARD_REQUIRED ON)
   set_property(TARGET ${CXX_17_TEST_TARGETS} PROPERTY CXX_EXTENSIONS OFF)
 endif()
+
+if(BUILD_PYTHON)
+# function(rtpg_add_python_test target)
+# add_test (NAME ${target}
+#   COMMAND ${Python3_EXECUTABLE} -m unittest ${CMAKE_SOURCE_DIR}/test/${target}.py
+#   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python
+# )
+# endfunction()
+
+# rtpg_add_python_test(unittest_pg)
+
+add_test(NAME "Python_Tests"
+  COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python
+)
+
+endif(BUILD_PYTHON)

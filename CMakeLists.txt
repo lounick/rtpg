@@ -18,15 +18,19 @@ endif()
 
 # Options. Turn on with 'cmake -DBUILD_TESTING=ON'.
 # catkin build manif --cmake-args -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
+option(BUILD_PYTHON "Build Python bindings." OFF)
 option(BUILD_TESTING "Build all tests." OFF)
 option(ENABLE_CPPCHECK "Enable cppcheck." OFF)
 option(BUILD_EXAMPLES "Build all examples." OFF)
+
+set(REQUIRED_PYTHON_VERSION "DEFAULT" CACHE STRING "The required python version")
 
 ###########
 ## Build ##
 ###########
 
 include(ExternalProject)
+
 ExternalProject_Add(
   handle_allocator
   GIT_REPOSITORY    https://github.com/lounick/handle_allocator.git
@@ -54,6 +58,22 @@ set(StduuidIncludeDir ${source_dir}/include)
 #TODO this is required for C++ < 20
 set(StduuidIncludeGSL ${source_dir}/gsl)
 
+# If we are building python bindings
+if(BUILD_PYTHON)
+include(FetchContent)
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG origin/stable
+)
+if (REQUIRED_PYTHON_VERSION STREQUAL "DEFAULT")
+  message(STATUS "No python version defined will search for a default")
+  find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+else()
+  find_package(Python3 ${REQUIRED_PYTHON_VERSION} EXACT COMPONENTS Interpreter Development REQUIRED)
+endif()
+endif(BUILD_PYTHON)
+
 add_library(${PROJECT_NAME} SHARED
     src/property_graph.cpp
     src/graph_element.cpp
@@ -76,6 +96,53 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+if(BUILD_PYTHON)
+FetchContent_MakeAvailable(pybind11)
+add_subdirectory(${pybind11_SOURCE_DIR})
+
+# Do python library things
+pybind11_add_module(_${PROJECT_NAME}_py WITHOUT_SOABI
+  src/bindings/bindings.cpp
+  src/bindings/graph_element.cpp
+  src/bindings/uuid.cpp
+  src/bindings/handle.cpp
+  src/bindings/node.cpp
+  src/bindings/edge.cpp
+  src/bindings/property_graph.cpp
+)
+target_include_directories(_${PROJECT_NAME}_py
+    PUBLIC
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${StduuidIncludeDir}>
+        $<BUILD_INTERFACE:${HAIncludeDir}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_features(_${PROJECT_NAME}_py PRIVATE cxx_std_17)
+target_link_libraries(_${PROJECT_NAME}_py PRIVATE ${PROJECT_NAME})
+
+pybind11_extension(_${PROJECT_NAME}_py)
+pybind11_strip(_${PROJECT_NAME}_py)
+
+# Overrides the pybind11 crappy suffix
+#TODO: Check if you can remove the ABI info with WITHOUT_SOABI parameter
+# See: https://github.com/pybind/pybind11/issues/2937
+set_target_properties(_${PROJECT_NAME}_py PROPERTIES PREFIX ""
+                                                     SUFFIX ".so")
+
+add_custom_command(TARGET _${PROJECT_NAME}_py POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_${PROJECT_NAME}_py>
+  ${PROJECT_SOURCE_DIR}/python/rtpg/_${PROJECT_NAME}_py.so
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}>
+  ${PROJECT_SOURCE_DIR}/python/rtpg/lib${PROJECT_NAME}.so
+)
+endif(BUILD_PYTHON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(${PROJECT_NAME} -ftemplate-depth=512)
@@ -124,6 +191,10 @@ export(
 )
 
 export(PACKAGE ${PROJECT_NAME})
+
+if(BUILD_PYTHON)
+#TODO: Add install rule for python
+endif(BUILD_PYTHON)
 
 ## Configuration
 
@@ -261,5 +332,6 @@ if(BUILD_TESTING)
 
   enable_testing()
   add_subdirectory(test)
+  #TODO: Add python testing like https://github.com/SimpleITK/SimpleITK
 
 endif(BUILD_TESTING)
